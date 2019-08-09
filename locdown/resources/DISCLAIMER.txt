@@ -1,0 +1,20 @@
+                          ########################
+                          ### LEGAL DISCLAIMER ###
+                          ########################
+
+locdown's download functionality is intended for legal use only. The Library of
+Congress posts the following notice on the details page of each recording:
+
+  This recording is protected by state copyright laws in the United States. The
+  Library of Congress has obtained a license from rights holders to offer it as
+  streamed audio only. Downloading is not permitted. The authorization of
+  rights holders of the recording is required in order to obtain a copy of the
+  recording. Contact jukebox@loc.gov for more information.
+
+If you use locdown to download a track from the Library of Congress Jukebox,
+it must be the case that either
+ (a) its rights holders have authorized you to do so, or
+ (b) you know that it is no longer under copyright.
+
+This disclaimer can be displayed at any time by running the following command.
+  locdown download --disclaimer
