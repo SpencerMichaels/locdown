@@ -25,5 +25,5 @@ def id_to_stream_url(recording_id, bitrate=320):
 def id_to_stream_url_parts(recording_id, bitrate=320):
   return STREAM_URL_BASE, STREAM_URL_PLAYPATH % (recording_id, bitrate)
 
-def id_to_details_url(id_, type_):
-  return DETAILS_URL_FMTSTR % (type_, id_)
+def id_to_details_url(id_, domain):
+  return DETAILS_URL_FMTSTR % (domain, id_)

@@ -24,8 +24,7 @@ async def recordings_args_to_concrete_ids(session, recordings):
     max_id = get_max_recording_id()
 
   converters = {
-    parser.IDUntyped: lambda arg: [arg.id_],
-    parser.IDTyped:   lambda arg: [arg.id_],
+    parser.ID:        lambda arg: [arg],
     parser.IDRange:   lambda arg: list(range(arg.start, arg.end+1)), # TODO
     parser.IDRandom:  lambda arg: random.sample(range(1, 1 + max_id), arg.count)
   }

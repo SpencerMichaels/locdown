@@ -1,40 +1,11 @@
-from collections import namedtuple
 import argparse
-import re
 
-from . import disclaimer, jukebox, util
-
-IDUntyped = namedtuple('IDUntyped', 'id_')
-IDTyped = namedtuple('IDTyped', 'id_ type_')
-IDRange = namedtuple('IDRange', 'start end')
-IDRandom = namedtuple('IDRandom', 'count')
-
-ID_RANGE_REGEX = re.compile('^(\d+)-(\d+)$')
-ID_RANDOM_REGEX = re.compile('^random(\d+)?$')
+from . import disclaimer, id, jukebox, util
 
 class DisclaimerAction(argparse.Action):
   def __call__(self, parser, namespace, values, option_string=None):
     disclaimer.show()
     parser.exit()
-
-def id_arg(arg):
-  if arg.isnumeric():
-    return IDUntyped(int(arg))
-
-  match = ID_RANGE_REGEX.match(arg)
-  if match:
-    start, end = map(int, match.groups())
-    return IDRange(start, end)
-
-  # Random N recordings (without replacement)
-  match = ID_RANDOM_REGEX.match(arg)
-  if match:
-    count = int(match.group(1)) if match.group(1) else 1
-    return IDRandom(count)
-
-  # URL (TODO: include artists detail page)
-  id_, type_ = jukebox.url.url_to_id(arg)
-  return IDTyped(id_, type_)
 
 def add_recordings_argument(parser, verb):
   help_text=f'''The recording(s) to {verb}.
@@ -49,7 +20,7 @@ Recordings can be specified in four ways:
 '''
 
   parser.add_argument('recordings', metavar='recording', nargs='+', default=[],
-      type=id_arg, help=help_text)
+      type=id.parse_id, help=help_text)
 
 def make_parser():
     root = argparse.ArgumentParser(prog='locdown', description=
@@ -71,7 +42,13 @@ def make_parser():
 
     scrape = subparsers.add_parser('scrape', formatter_class=argparse.RawTextHelpFormatter,
         help='Scrape audio metadata.')
-    scrape.add_argument('-s', '--save-json', action='store_true', help=
+    scrape.add_argument('-s', '--shallow', action='store_true', help=
+        'When scraping an artist\'s details page, only use the recording information' + \
+        'available on that page; don\'t fetch the full details for those recordings.')
+    scrape.add_argument('-r', '--artist-dirs', action='store_true', help=
+        'Save artist information as a directory containing individual JSON files ' + \
+        'for each recording, rather than the default of a single JSON file.')
+    scrape.add_argument('-j', '--save-json', action='store_true', help=
         'Save individual JSON data files for each recording instead of printing.')
     scrape.add_argument('-d', '--dest', type=str, default='.', help=
         'Destination directory for downloaded data files. Use with the -s flag.')
@@ -89,8 +66,11 @@ def make_parser():
         'Download album art, if available, and embed it in the recording(s).')
     download.add_argument('-p', '--print', action='store_true', help=
         'Print JSON data for the recording(s); same as the `scrape` action.')
-    download.add_argument('-s', '--save-json', action='store_true', help=
+    download.add_argument('-j', '--save-json', action='store_true', help=
         'Save individual JSON data files alongside each recording.')
+    download.add_argument('-r', '--artist-dirs', action='store_true', help=
+        'For each artist ID specified, save all of the artists\' recordings ' + \
+        'in artist-specific directories.')
     add_recordings_argument(download, 'download')
     download.register('action', 'disclaimer', DisclaimerAction)
     download.add_argument('--disclaimer', nargs=0, action='disclaimer', help=

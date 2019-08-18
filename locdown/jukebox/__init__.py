@@ -3,20 +3,9 @@ import urllib
 
 from . import scraper, url
 
-async def scrape(session, id_):
-  target = url.id_to_details_url(id_, 'recordings')
-  async with session.get(target) as response:
-    data = await response.read()
-    html = data.decode('utf-8', errors='ignore')
-    try:
-      return scraper.scrape_recording_details(html)
-    except RuntimeError as e:
-      text = str(e)
-      raise RuntimeError(f'Failed to scrape metadata for recording #{id_}: {str(e)}')
-
-async def find_max_valid_recording_id(session, i0):
+async def find_max_valid_id(session, domain, i0):
   async def is_valid(id_):
-    target = url.id_to_details_url(id_, 'recordings')
+    target = url.id_to_details_url(id_, domain)
     try:
       async with session.get(target) as response:
         return response.status == 200

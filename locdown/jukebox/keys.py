@@ -40,3 +40,8 @@ RECORDING_DATE = 'Recording Date'
 RECORDING_TITLE = 'Recording Title'
 RELATED_TAKES = 'Related Takes'
 SIZE = 'Size'
+
+RECORDINGS = 'Recordings'
+ARTIST_ROLE = 'Artist Role'
+PRIMARY_PERFORMERS = 'Primary Performer(s)'
+TITLE = 'Title'

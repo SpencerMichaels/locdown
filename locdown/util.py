@@ -10,6 +10,9 @@ def die(msg, errno=1):
 def log(msg, end='\n'):
   print(msg, file=sys.stderr, end=end)
 
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
+
 def a_an(s):
   if not s:
     return s

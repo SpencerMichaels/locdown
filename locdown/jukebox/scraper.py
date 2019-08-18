@@ -1,14 +1,16 @@
 from bs4 import BeautifulSoup
-import re
+import asyncio
+import functools, math, re
 
 from . import keys, url
 
 A_HREF_REGEX = re.compile('\/jukebox\/([a-z]+)\/detail\/id\/(\d+)')
 HREF_URL_PREFIX = 'https://www.loc.gov'
 ALIAS_REGEX = re.compile('(.*) \[i.e., (.*)\]')
+ARTIST_RESULTS_REGEX = re.compile('Results: (\d+)-(\d+) of (\d+)')
 
-def fix_tag_text(s):
-  s = s.strip()
+def get_tag_text(tag):
+  s = tag.get_text().strip()
   s = re.sub('\n|\t', ' ', s)
   s = re.sub('  +', ' ', s)
   s = re.sub(' ,', ',', s)
@@ -18,7 +20,7 @@ def fix_tag_text(s):
 
 def convert_a(a, name=keys.REF_NAME):
   ref = { keys.REF_LINK: HREF_URL_PREFIX + a['href'].strip() }
-  text = fix_tag_text(a.get_text())
+  text = get_tag_text(a)
 
   match = ALIAS_REGEX.match(text)
   if match:
@@ -29,12 +31,6 @@ def convert_a(a, name=keys.REF_NAME):
 
   return ref
 
-  #match = A_HREF_REGEX.match(a['href'])
-  #if match:
-  #  return { name: fix_tag_text(a.get_text()),
-  #          'ref': f'{match.group(1)}/{match.group(2)}' }
-  #raise ValueError('Unhandled HTML element:\n' + str(li))
-
 # True if `item` is an artist ref or a list of artist refs
 def is_artist_ref(item):
   if type(item) is list:
@@ -42,7 +38,6 @@ def is_artist_ref(item):
   if keys.REF_LINK in item:
     return '/artists/' in item[keys.REF_LINK]
   return False
-  #return 'ref' in item and item['ref'].startswith('artists')
 
 def li_to_key_value(li):
   key = li.find('h3').get_text().strip()
@@ -50,9 +45,8 @@ def li_to_key_value(li):
   # Single value
   p = li.find('p')
   if p:
-    #return key, util.unlist1([ convert_a(a) for a in p.find_all('a', recursive=False)]) or \
     return key, [ convert_a(a) for a in p.find_all('a', recursive=False)] or \
-                fix_tag_text(p.get_text())
+                  get_tag_text(p)
 
   # List of values
   ul = li.find('ul', class_='std')
@@ -61,7 +55,7 @@ def li_to_key_value(li):
     def convert_inner(inner):
       a = inner.find('a')
       return convert_a(a) if a \
-          else fix_tag_text(inner.get_text())
+          else get_tag_text(inner)
     return key, [ convert_inner(li_inner) for li_inner in lis_inner ]
 
   raise ValueError('Unhandled HTML element:\n' + str(li))
@@ -84,24 +78,39 @@ def reformat_other_titles(titles):
     m[category] = m[category]
   return m
 
-def scrape_recording_details(html):
-  soup = BeautifulSoup(html, 'html5lib')
-  identifier_meta = soup.find('meta', { 'name': 'DC.identifier' })
+def raise_page_format_exception(url_):
+  raise RuntimeError(f'The page `{url_}` is in an unrecognized format! ' + \
+                     'Check loc.gov; it may be down for maintenance.')
 
-  if not identifier_meta:
+async def get_soup(session, url_):
+  async with session.get(url_) as response:
+    data = await response.read()
+    html = data.decode('utf-8', errors='ignore')
+    return BeautifulSoup(html, 'html5lib')
+
+def do_page_structure_sanity_check(soup):
+  # The DC.identifier meta tag is found on both recording and artist details pages
+  # If it's not there, the page is not structured as we expect it to be.
+  if not soup.find('meta', { 'name': 'DC.identifier' }):
+    # Try to extract the error message provided by the page
     inner_box = soup.find('div', { 'class': 'innerbox' })
     if inner_box:
       title = inner_box.find('h2').get_text()
       text = inner_box.find('p').get_text()
       raise RuntimeError(f'{title}: {text}')
     else:
-      raise RuntimeError('Recording details page is in an unknown format! ' + \
-                         'Check loc.gov; it may be down for maintenance.')
+      # If all else fails, present a generic error
+      raise_page_format_exception(url_)
 
-  link = identifier_meta['content']
+async def scrape_recording_details(session, id_):
+  url_ = url.id_to_details_url(id_, 'recordings')
+  soup = await get_soup(session, url_)
+
+  do_page_structure_sanity_check(soup)
+
   details = {
-    keys.ID: url.url_to_id(link).id_,
-    keys.REF_LINK: link.replace('http', 'https'),
+    keys.ID: id_,
+    keys.REF_LINK: url_,
     keys.ARTISTS: {}, 
   }
 
@@ -128,8 +137,6 @@ def scrape_recording_details(html):
         real = next(filter(lambda r: r.get(keys.REF_NAME) == alias_real_name, reals), None)
         if real:
           alias[keys.REF_NAME] = alias.pop(keys.REF_ALIAS, None)
-          if keys.REF_ALIAS in real:
-            util.log('WARNING! ref alias already exists in real') # TODO: worth handling?
           real[keys.REF_ALIAS] = alias
 
       details[keys.ARTISTS][key] = reals
@@ -137,3 +144,81 @@ def scrape_recording_details(html):
       details[key] = value
 
   return details
+
+async def scrape_artist_details(session, id_, shallow=False):
+  url_ = url.id_to_details_url(id_, 'artists')
+  soup = await get_soup(session, url_)
+
+  do_page_structure_sanity_check(soup)
+
+  metadata = {
+      keys.ID: id_,
+      keys.REF_LINK: url_,
+  }
+
+  name_h1 = soup.select_one('#page_head > h1')
+  if not name_h1:
+    raise_page_format_exception(url_)
+  else:
+    metadata[keys.REF_NAME] = get_tag_text(name_h1)
+
+  desc_p = soup.find('div', { 'class': 'innerbox' }).find('p', { 'class': '' })
+  desc = get_tag_text(desc_p)
+  if desc:
+    metadata[keys.DESCRPTION] = desc
+
+  n_results_div = soup.find('div', { 'class': 'n_results' })
+  if not n_results_div:
+    return metadata # No recordings for this artist!
+
+  results_text = get_tag_text(n_results_div)
+
+  match = ARTIST_RESULTS_REGEX.match(results_text)
+  if not match:
+    raise_page_format_exception(url_)
+
+  result_first, result_last, result_max = map(int, match.groups())
+  num_pages = math.ceil(result_max/(result_last - result_first + 1))
+
+  async def scrape_artist_recordings_from_soup(soup):
+    table = soup.find('table', { 'id': 'artist-takes' })
+    col_names = [ get_tag_text(h) for h in table.select('tr > th') ]
+    rows = table.select('tbody > tr')
+
+    async def get_row_metadata(row):
+      cols = row.find_all('td')
+      link = HREF_URL_PREFIX + cols[2].find('a')['href'].strip()
+      id_ = int(link.split('/')[-1])
+
+      if not shallow:
+        return await scrape_recording_details(session, id_)
+      else:
+        row_metadata = {
+            keys.ID: id_,
+            keys.REF_LINK: link,
+        }
+
+        img_src = cols[0].select_one('div > div > img')['src']
+        if img_src != '/jukebox/images/album_default.jpg': # No image available
+          row_metadata[keys.IMAGE_LINK] = HREF_URL_PREFIX + img_src
+
+        for i, col in enumerate(cols[1:]):
+          row_metadata[col_names[i+1]] = get_tag_text(col)
+
+        return row_metadata
+
+    return await asyncio.gather(*map(get_row_metadata, rows))
+
+  async def scrape_artist_recordings(page_num):
+    soup = await get_soup(session, f'{url_}?page={page_num}')
+    return await scrape_artist_recordings_from_soup(soup)
+
+  # Download and scrape pages 2+ only; we already downloaded page 1 above
+  tasks = map(scrape_artist_recordings, range(2, num_pages+1))
+  pages = await asyncio.gather(*tasks)
+
+  metadata[keys.RECORDINGS] = functools.reduce(
+      lambda accum, recordings: accum + recordings,
+      pages, await scrape_artist_recordings_from_soup(soup))
+
+  return metadata
