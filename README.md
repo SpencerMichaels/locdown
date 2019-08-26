@@ -156,7 +156,7 @@ Fetching and tagging a track, including album art, and saving a JSON file
 containing scraped information.
 
 ```
-$ locdown download --tag --art --save-json --dest /tmp 1234
+$ locdown download --tag --art --save-json --dest /tmp 1337
 
 Scraping recording metadata...
 ✓ 1/1 (100%) [█████████████████████████████████████████████████████████████████]
@@ -164,8 +164,8 @@ Downloading recordings...
 ✓ 1/1 (100%) [█████████████████████████████████████████████████████████████████]
 
 # Files created:
-#   /tmp/1234 - Antonio Scotti - Brindisi, Inaffia i'ugola.json
-#   /tmp/1234 - Antonio Scotti - Brindisi, Inaffia i'ugola.mp3
+#   /tmp/1337 - Evan Williams - A dream.json
+#   /tmp/1337 - Evan Williams - A dream.mp3
 ```
 
 ![](images/example.png)
