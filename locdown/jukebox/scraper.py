@@ -102,7 +102,7 @@ def do_page_structure_sanity_check(soup):
       # If all else fails, present a generic error
       raise_page_format_exception(url_)
 
-async def scrape_recording_details(session, id_):
+async def scrape_recording(session, id_):
   url_ = url.id_to_details_url(id_, 'recordings')
   soup = await get_soup(session, url_)
 
@@ -145,7 +145,7 @@ async def scrape_recording_details(session, id_):
 
   return details
 
-async def scrape_artist_details(session, id_, shallow=False):
+async def scrape_artist(session, id_, shallow=False):
   url_ = url.id_to_details_url(id_, 'artists')
   soup = await get_soup(session, url_)
 
@@ -191,7 +191,7 @@ async def scrape_artist_details(session, id_, shallow=False):
       id_ = int(link.split('/')[-1])
 
       if not shallow:
-        return await scrape_recording_details(session, id_)
+        return await scrape_recording(session, id_)
       else:
         row_metadata = {
             keys.ID: id_,

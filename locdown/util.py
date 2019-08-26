@@ -1,17 +1,11 @@
-from appdirs import user_data_dir
 import functools, operator, os, sys, subprocess
 
-USER_DATA_DIR = user_data_dir("locdown", "SpencerMichaels", roaming=False)
-
 def die(msg, errno=1):
-  log(f'error: {msg}')
+  epring(f'error: {msg}')
   exit(errno)
 
-def log(msg, end='\n'):
-  print(msg, file=sys.stderr, end=end)
-
 def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
+  print(*args, file=sys.stderr, **kwargs)
 
 def a_an(s):
   if not s:
@@ -37,7 +31,7 @@ def confirm(default=None):
 
   result = read_yn(input())
   while result == None:
-    log('Invalid input. Please enter Y/yes or N/no.', file=sys.stderr)
+    eprint('Invalid input. Please enter y/yes or n/no (case-insensitive).', file=sys.stderr)
     result = read_yn(input())
 
   return result
@@ -45,13 +39,10 @@ def confirm(default=None):
 def flatten(l):
   return functools.reduce(operator.add, l, [])
 
-def open_urls(files):
+def open_urls(urls):
   if sys.platform == 'win32':
-    for f in files:
+    for f in urls:
       os.startfile(f'"{f}"')
   else:
     opener = 'open' if sys.platform == 'darwin' else 'xdg-open'
-    subprocess.call([opener] + files)
-
-#def unlist1(l):
-#  return l[0] if len(l) == 1 else l
+    subprocess.call([opener] + urls)

@@ -62,28 +62,37 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   -b BITRATE, --bitrate BITRATE
-                        Desired bitrate, in kbps. Can be 128 or 320. Defaults to 320.
+                        Desired bitrate, in kbps. Can be 128 or 320. Defaults
+                        to 320.
   -p, --print           Print stream URLs instead of opening them.
 ```
 
 ### Scrape mode
 
 ```
-usage: locdown scrape [-h] [-s] [-d DEST] recording [recording ...]
+usage: locdown scrape [-h] [-s] [-r] [-j] [-d DEST] recording [recording ...]
 
 positional arguments:
   recording             The recording(s) to scrape.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -s, --save-json       Save individual JSON data files for each recording instead of printing.
-  -d DEST, --dest DEST  Destination directory for downloaded data files. Use with the -s flag.
+  -s, --shallow         When scraping an artist's details page, only use the
+                        recording information available on that page; don't
+                        fetch the full details for those recordings.
+  -r, --artist-dirs     Save artist information as a directory containing
+                        individual JSON files for each recording, rather than
+                        the default of a single JSON file.
+  -j, --save-json       Save individual JSON data files for each recording
+                        instead of printing.
+  -d DEST, --dest DEST  Destination directory for downloaded data files. Use
+                        with the -s flag.
 ```
 
 ### Download mode
 
 ```
-usage: locdown download [-h] [-d DEST] [-b BITRATE] [-t] [-a] [-p] [-s]
+usage: locdown download [-h] [-d DEST] [-b BITRATE] [-t] [-a] [-p] [-j] [-r]
                         [--disclaimer]
                         recording [recording ...]
 
@@ -92,27 +101,54 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
-  -d DEST, --dest DEST  Destination directory for downloaded recordings and data files.
+  -d DEST, --dest DEST  Destination directory for downloaded recordings and
+                        data files.
   -b BITRATE, --bitrate BITRATE
                         Desired bitrate (128 or 320). Defaults to 320.
   -t, --tag             Tag the downloaded recording(s).
-  -a, --art             Download album art, if available, and embed it in the recording(s).
-  -p, --print           Print JSON data for the recording(s); same as the `scrape` action.
-  -s, --save-json       Save individual JSON data files alongside each recording.
-  --disclaimer          Show the disclaimer displayed when download mode is first used.
+  -a, --art             Download album art, if available, and embed it in the
+                        recording(s).
+  -p, --print           Print JSON data for the recording(s); same as the
+                        `scrape` action.
+  -j, --save-json       Save individual JSON data files alongside each
+                        recording.
+  -r, --artist-dirs     For each artist ID specified, save all of the artists'
+                        recordings in artist-specific directories.
+  --disclaimer          Show the disclaimer displayed when download mode is
+                        first used.
 ```
 
-### Recording and Artist IDs
+### Specifying Recording and Artist IDs
 
 The recordings on which to operate can be specified in numerous ways. Any number
 of the following ID formats (separated by spaces) can be provided in the
 `recordings...` argument of all three modes.
 
-1. The URL of the details page for a recording:
+1. The URL of the details page for a recording or artist:
    `https://loc.gov/jukebox/recordings/detail/id/1234`
 2. The ID found in the details page URL: `1234`
 3. A dash-separated range of IDs: `100-120`
 4. One or more randomly-selected IDs: `randomN` for `N` IDs, e.g. `random10`. `random1` can be abbreviated as `random`.
+
+`locdown` also accepts artist IDs. In stream and download mode, providing an
+artist ID is equivalent to providing all the IDs of the recordings credited to
+that artist (which may be a very large number of items; be careful!). In scrape
+mode, `locdown` will scrape information about the artist, with a list of all
+the artist's recordings included as a sub-element of that data. By default,
+each recording in the list will have its information scraped in full, as if it
+had been specified directly by ID. If the `-s/--shallow` flag is specified,
+this second level of scraping will be skipped, and each recording entry will
+contain only what information can be scraped from the artist's recordings list.
+
+Artist IDs are specified as follows:
+
+1. The URL of the details page for an artist:
+   `https://loc.gov/jukebox/artists/detail/id/1234`
+2. Any of the single-item, range-based, and random-item ID formats specified
+  above (#2-4), prefixed with `artist:`. That is,
+  - `artist:1234`
+  - `artist:100-120`
+  - `artist:randomN`
 
 ## Examples
 
@@ -121,8 +157,11 @@ containing scraped information.
 
 ```
 $ locdown download --tag --art --save-json --dest /tmp 1234
-Downloading 1 recording...
-1/1 (100%) complete
+
+Scraping recording metadata...
+✓ 1/1 (100%) [█████████████████████████████████████████████████████████████████]
+Downloading recordings...
+✓ 1/1 (100%) [█████████████████████████████████████████████████████████████████]
 
 # Files created:
 #   /tmp/1234 - Antonio Scotti - Brindisi, Inaffia i'ugola.json
