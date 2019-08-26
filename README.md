@@ -145,10 +145,10 @@ Artist IDs are specified as follows:
 1. The URL of the details page for an artist:
    `https://loc.gov/jukebox/artists/detail/id/1234`
 2. Any of the single-item, range-based, and random-item ID formats specified
-  above (#2-4), prefixed with `artist:`:
-  - `artist:1234`
-  - `artist:100-120`
-  - `artist:randomN`
+  above (#2-4), prefixed with `artist:`: 
+    - `artist:1234`
+    - `artist:100-120`
+    - `artist:randomN`
 
 ## Examples
 
