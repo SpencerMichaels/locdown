@@ -3,10 +3,21 @@
 `locdown` is a command-line tool that can fetch audio and scrape metadata from
 [the Library of Congress Jukebox](https://www.loc.gov/jukebox).
 
+# Table of Contents
+
+  * [Background](#background)
+  * [Usage](#usage)
+     * [Stream mode](#stream-mode)
+     * [Scrape mode](#scrape-mode)
+     * [Download mode](#download-mode)
+     * [Specifying Recording and Artist IDs](#specifying-recording-and-artist-ids)
+  * [Examples](#examples)
+  * [Disclaimer](#disclaimer)
+
 ## Background
 
 The Library of Congress website has a "Jukebox" section that provides free
-access to over ten thousand tracks of historically significant music ---
+access to over ten thousand tracks of historically significant music —
 unfortunately, it requires Adobe Flash to play audio. Virtually all modern
 browsers block Flash by default, some don't support it at all, and many people
 (myself included) actively avoid Flash for privacy and security reasons. As
@@ -145,7 +156,7 @@ Artist IDs are specified as follows:
 1. The URL of the details page for an artist:
    `https://loc.gov/jukebox/artists/detail/id/1234`
 2. Any of the single-item, range-based, and random-item ID formats specified
-  above (#2-4), prefixed with `artist:`: 
+  above (#2-4), prefixed with `artist:`:
     - `artist:1234`
     - `artist:100-120`
     - `artist:randomN`
