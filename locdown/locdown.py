@@ -6,7 +6,10 @@ from .argparser import parse_args
 from . import action, config, util
 
 async def main_task(args):
-  async with aiohttp.ClientSession(
+  # Fix erroneous timeouts when scraping large amounts of metadata
+  # There is probably a better way to do this, but this is good enough
+  timeout = aiohttp.ClientTimeout(total=15*60, connect=None, sock_connect=None, sock_read=None)
+  async with aiohttp.ClientSession(timeout=timeout,
         connector=aiohttp.TCPConnector(limit=args.max_connections),
         headers={ 'User-Agent': UserAgent().chrome }) as session:
     if args.action == 'download':

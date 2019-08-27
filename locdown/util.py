@@ -1,11 +1,11 @@
 import functools, operator, os, sys, subprocess
 
-def die(msg, errno=1):
-  epring(f'error: {msg}')
-  exit(errno)
-
 def eprint(*args, **kwargs):
   print(*args, file=sys.stderr, **kwargs)
+
+def die(msg, errno=1):
+  eprint(f'error: {msg}')
+  exit(errno)
 
 def a_an(s):
   if not s:

@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from .common import expand_dest_dir, stringify_metadata
 from ..taskbatch import TaskBatch
@@ -12,6 +13,10 @@ MISC_RECORDINGS_ARTIST = 'Various Artists'
 def validate_args(args):
   if args.artist_dirs and not args.save_json:
     util.die('-r/--artist-dirs must be used with -j/--save-json')
+  elif args.dest and not os.path.exists(args.dest):
+    util.die(f'The destination specified by -d/--dest does not exist: {args.dest}')
+  elif args.dest and not os.path.isdir(args.dest):
+    util.die(f'The destination specified by -d/--dest exists, but is not a directory: {args.dest}')
 
 def write_metadata(filepath, md):
   with Path(str(filepath) + '.json').open('w', encoding='utf-8') as f:
@@ -19,14 +24,12 @@ def write_metadata(filepath, md):
     f.write('\n')
 
 def save_artist_metadata(dest_dir, md, artist_dirs=False, shallow=False):
-  name = f'{md.get(jb.keys.ID)} - {md.get(jb.keys.REF_NAME)}'
+  name = tagger.make_dirname(md)
   path = dest_dir.joinpath(name)
   if artist_dirs:
     path.mkdir(exist_ok=True)
     for rmd in md.get(jb.keys.RECORDINGS):
-      filename = f'{rmd.get(jb.keys.ID)} - {md.get(jb.keys.REF_NAME)} - {rmd.get(jb.keys.TITLE)}' \
-        if shallow \
-        else tagger.make_filename(rmd)
+      filename = tagger.make_filename(rmd, md)
       write_metadata(path.joinpath(filename), rmd)
     mdw = dict(md)
     del mdw[jb.keys.RECORDINGS]
@@ -66,7 +69,7 @@ async def scrape_inner(session, recordings, dest=None, artist_dirs=False, shallo
         if dest_dir:
           save_artist_metadata(dest_dir, result, artist_dirs=artist_dirs, shallow=shallow)
         return result
-      except RuntimeError as e:
+      except Exception as e:
         util.eprint(f'warning: Failed to scrape metadata for artist #{id_}: {str(e)}')
 
     util.eprint('Scraping artist metadata...')

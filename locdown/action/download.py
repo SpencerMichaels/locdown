@@ -15,9 +15,9 @@ def validate_args(args):
   elif not args.bitrate in [128, 320]:
     util.die('Bitrate must be either 128 or 320.')
   elif args.dest and not os.path.exists(args.dest):
-    util.die(f'The destination specified by -d/--dest does not exist:\n  {args.dest}')
+    util.die(f'The destination specified by -d/--dest does not exist: {args.dest}')
   elif args.dest and not os.path.isdir(args.dest):
-    util.die(f'The destination specified by -d/--dest exists, but is not a directory:\n  {args.dest}')
+    util.die(f'The destination specified by -d/--dest exists, but is not a directory: {args.dest}')
 
 async def download(session, args, max_connections=10):
   validate_args(args)

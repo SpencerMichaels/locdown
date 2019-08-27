@@ -30,6 +30,15 @@ def _title_text(metadata):
 
   return title
 
+def _alias(performer):
+  name = performer.get(keys.REF_NAME)
+  alias = performer.get(keys.REF_ALIAS)
+  if alias:
+    aname = alias if type(alias) == str \
+        else alias.get(keys.REF_NAME)
+    name = f'{aname} ({name})'
+  return name
+
 def _performer_list(metadata):
   artists = metadata.get(keys.ARTISTS)
   performers = []
@@ -50,15 +59,7 @@ def _performer_list(metadata):
     performers = [ people for role, people in artists.items() \
                    if role not in keys.NON_PERFORMING_ARTISTS ]
 
-  names = []
-  for performer in util.flatten(performers):
-    name = performer.get(keys.REF_NAME)
-    alias = performer.get(keys.REF_ALIAS)
-    if alias:
-      name = f'{alias.get(keys.REF_NAME)} ({name})'
-    names.append(name)
-
-  return ', '.join(names)
+  return ', '.join([ _alias(performer) for performer in util.flatten(performers) ])
 
 def title(metadata):
   return id3.TIT2(text=_title_text(metadata))
@@ -104,10 +105,22 @@ def publisher(metadata):
   return _tag_transform(metadata, id3.TPUB,
       lambda s: s.split(' ')[0], keys.LABEL_NAME_AND_NUMBER)
 
-def filename(metadata):
-  title_text = _title_text(metadata).replace(':', ' -') # best to keep colons out of filenames
-  filename = f'{metadata.get(keys.ID)} - {_performer_list(metadata)} - {title_text}'
+def fix_filename(filename):
+  filename = filename.replace(':', ' -') # best to keep colons out of filenames
+  filename = filename.replace('/', ', ') # DEFINITELY remove slashes
   return filename
+
+def filename(metadata, artist_metadata=None):
+  filename = f'{metadata.get(keys.ID)} - {_performer_list(metadata)} - {_title_text(metadata)}' \
+    if keys.ARTISTS in metadata \
+    else f'{metadata.get(keys.ID)} - {_alias(artist_metadata)} - {metadata.get(keys.TITLE)}'
+  return fix_filename(filename)
+
+def dirname(metadata):
+  filename = f'{metadata.get(keys.ID)} - {_performer_list(metadata)}' \
+    if keys.ARTISTS in metadata \
+    else f'{metadata.get(keys.ID)} - {_alias(metadata)}' # shallow
+  return fix_filename(filename)
 
 tag_makers = [
     title,

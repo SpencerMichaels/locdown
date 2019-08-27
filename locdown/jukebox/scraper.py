@@ -18,18 +18,19 @@ def get_tag_text(tag):
 
 # Convert <a> tags to refs
 
-def convert_a(a, name=keys.REF_NAME):
-  ref = { keys.REF_LINK: HREF_URL_PREFIX + a['href'].strip() }
-  text = get_tag_text(a)
-
+def unalias(ref, text):
   match = ALIAS_REGEX.match(text)
   if match:
     ref[keys.REF_ALIAS] = match.group(1)
-    ref[name] = match.group(2)
+    ref[keys.REF_NAME] = match.group(2)
   else:
-    ref[name] = text
-
+    ref[keys.REF_NAME] = text
   return ref
+
+def convert_a(a):
+  ref = { keys.REF_LINK: HREF_URL_PREFIX + a['href'].strip() }
+  text = get_tag_text(a)
+  return unalias(ref, text)
 
 # True if `item` is an artist ref or a list of artist refs
 def is_artist_ref(item):
@@ -160,7 +161,7 @@ async def scrape_artist(session, id_, shallow=False):
   if not name_h1:
     raise_page_format_exception(url_)
   else:
-    metadata[keys.REF_NAME] = get_tag_text(name_h1)
+    unalias(metadata, get_tag_text(name_h1))
 
   desc_p = soup.find('div', { 'class': 'innerbox' }).find('p', { 'class': '' })
   desc = get_tag_text(desc_p)
@@ -169,6 +170,7 @@ async def scrape_artist(session, id_, shallow=False):
 
   n_results_div = soup.find('div', { 'class': 'n_results' })
   if not n_results_div:
+    metadata[keys.RECORDINGS] = []
     return metadata # No recordings for this artist!
 
   results_text = get_tag_text(n_results_div)
